@@ -2,11 +2,11 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleaseStateTransformations._
 
-val scalazVersion     = "7.2.21"
+val scalazVersion     = "7.2.23"
 val scalazStreamVersion = "0.8.6a"
 val spireVersion      = "0.13.0"
-val monocleVersion    = "1.3.2"
-val scalacheckVersion = "1.12.6"
+val monocleVersion    = "1.5.0"
+val scalacheckVersion = "1.14.0"
 val avro4sVersion = "1.8.3"
 
 val previousArtifactVersion = SettingKey[String]("previous-tagged-version")
@@ -84,6 +84,7 @@ lazy val commonSettings = Seq(
     |import scalaz._
     |import Scalaz._
     |import cilib._
+    |import spire.implicits._
     |""".stripMargin,
   // MiMa related
   previousArtifactVersion := { // Can this be done nicer/safer?
@@ -111,8 +112,8 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
-  organizationHomepage := Some(url("http://github.com/cirg-up")),
-  homepage := Some(url("http://cilib.net")),
+  organizationHomepage := Some(url("https://github.com/cirg-up")),
+  homepage := Some(url("https://cilib.net")),
   licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
   autoAPIMappings := true,
   apiURL := Some(url("https://cilib.net/api/")),
@@ -140,7 +141,7 @@ lazy val publishSettings = Seq(
             <developer>
               <id>{id}</id>
               <name>{name}</name>
-              <url>http://github.com/{id}</url>
+              <url>https://github.com/{id}</url>
             </developer>
         }
       }
@@ -178,8 +179,8 @@ lazy val core = project
         "org.scalaz" %% "scalaz-concurrent" % scalazVersion,
         "org.spire-math" %% "spire" % spireVersion,
         "com.github.julien-truffaut" %% "monocle-core" % monocleVersion,
-        "com.chuusai" %% "shapeless" % "2.3.2",
-        "eu.timepit" %% "refined" % "0.8.5"
+        "com.chuusai" %% "shapeless" % "2.3.3",
+        "eu.timepit" %% "refined" % "0.9.0"
       ),
       wartremoverErrors in (Compile, compile) ++= Seq(
         //Wart.Any,
@@ -246,17 +247,19 @@ lazy val docSettings = Seq(
   siteStageDirectory := target.value / "site-stage",
   sourceDirectory in paradox in Paradox := siteStageDirectory.value,
   sourceDirectory in paradox := siteStageDirectory.value,
+  // https://github.com/lightbend/paradox/issues/139
+  sourceDirectory in Paradox in paradoxTheme := sourceDirectory.value / "main" / "paradox" / "_template",
   paradoxMaterialTheme in Paradox ~= {
     _.withFavicon("img/favicon.png")
       .withLogo("img/cilib_logo_transparent.png")
       .withRepository(uri("https://github.com/cirg-up/cilib"))
   },
-  paradoxProperties in Compile ++= Map(
-    "github.base_url" -> s"https://github.com/cirg-up/cilib/tree/series/2.0.x/${version.value}"
-  ),
   copySiteToStage := {
-    IO.copyDirectory(source = sourceDirectory.value / "main" / "paradox",
-                     target = siteStageDirectory.value,
+    IO.copyFile(sourceFile = sourceDirectory.value / "main" / "paradox" / "index.md",
+                targetFile = siteStageDirectory.value / "index.md",
+                preserveLastModified = true)
+    IO.copyDirectory(source = sourceDirectory.value / "main" / "paradox" / "img",
+                     target = siteStageDirectory.value / "img",
                      overwrite = false,
                      preserveLastModified = true)
     IO.copyDirectory(source = tutTargetDirectory.value,
@@ -333,7 +336,7 @@ lazy val tests = project
       javaOptions in test += "-Xmx1G",
       libraryDependencies ++= Seq(
         "org.scalacheck" %% "scalacheck" % scalacheckVersion % "test",
-        "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+        "org.scalaz" %% "scalaz-scalacheck-binding" % (scalazVersion + "-scalacheck-1.14") % "test"
       )
     ))
 
